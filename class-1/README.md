@@ -4,7 +4,7 @@ Guia de estudos do módulo de MongoDB, do curso [Construa seu Instagram com MEAN
 
 ## Slides
 
- - [Aula 01]()
+ - [Aula 01](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.p)
 
 
 ### Aula 01 (Export e Import)
