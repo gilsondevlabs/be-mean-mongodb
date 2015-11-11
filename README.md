@@ -2,12 +2,12 @@
 
 Guia de estudos do módulo de MongoDB, do curso [Construa seu Instagram com MEAN](http://dagora.net/be-mean/) da [Webschool.io](https://github.com/Webschool-io/)
 
-## Slides
-
- - [Aula 01](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.p)
-
+## Descrição das Aulas
 
 ### Aula 01 (Export e Import)
+
+Slides:
+ - [Aula 01](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.p)
 
 Nessa aula foi falado sobre os bancos NoSQL, e cada tipo:
 
@@ -25,3 +25,15 @@ Finalizando a aula foram apresentados os comandos export & import do mongoDB e u
  - [Video da Aula](https://www.youtube.com/watch?v=leYxsEAL_yY)
  - [Exercicio da Aula](https://github.com/Webschool-io/be-mean-instagram/blob/master/apostila/mongodb/export_import.md)
  - [Exercicio Resolvido](https://github.com/Webschool-io/be-mean-instagram/blob/master/apostila/classes/mongodb/exercises/class-01-resolved-gilsondev-gilsonfilho.md)
+
+### Aula 02
+
+Slides:
+ - [Aula 02]()
+
+
+#### Links
+
+ - [Video da Aula](https://youtu.be/PaNVk0V2UNI)
+ - [Exercicio da Aula]()
+ - [Exercicio Resolvido]()
