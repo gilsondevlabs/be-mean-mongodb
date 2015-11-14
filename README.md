@@ -31,8 +31,6 @@ Finalizando a aula foram apresentados os comandos export & import do mongoDB e u
 Slides:
  - [Aula 02](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge7fc94614_395_0)
 
-Nessa aula foi falado sobre os comandos de acessar database, listar os bancos disponíveiso
-
 O que foi falado na aula?
 
 Iniciamos, com a instrução de envio dos exercícios para o repositório do `Webshool-io/be-mean-instagram`, por meio do Pull Request. Foi explicado o uso do comando `use <database_name>` que acessa o banco escolhido. Dessa forma fica assim:
@@ -225,3 +223,249 @@ while (myCursor.hasNext()) {
  - [Video da Aula](https://youtu.be/PaNVk0V2UNI)
  - [Exercicio da Aula](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge7fc94614_395_213)
  - [Exercicio Resolvido](https://github.com/Webschool-io/be-mean-instagram/blob/master/apostila/classes/mongodb/exercises/class-02-resolved-gilsondev-gilsonfilho.md)
+
+
+### Aula 03
+
+Slides:
+ - [Aula 03](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge7fc94614_395_231)
+
+O que foi falado na aula?
+
+Inicialmente foi feito a correção do exercício que foi passado na aula 02. Depois disso começamos a aprender sobre a busca das informações com o `find()` e `findOne()`.
+
+O comando `find()` ele aceita dois parametros:
+
+```bash
+be-mean-pokemons> db.colecao.find({clausulas}, {campos})
+```
+
+Sendo que a *clausula* é como se fose o uso do *WHERE* do banco relacional, e o *campos* define quais campos deseja retornar da pesquisa. Por exemplo, vamos fazer a busca de um pokemon, usando o campo *name*:
+
+```bash
+be-mean-pokemons> var query = {name: "Pikachu"}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico",
+  "type": "eletric",
+  "attack": 55,
+  "height": 0.4
+}
+Fetched 1 record(s) in 0ms
+```
+
+Para definirmos os campos que queremos que retorne, associamos o nome do campo como chave, e o valor usamos *1* para verdadeiro, ou seja, que ele é um campo desejado no retorno, e *0*, define como um campo indesejado, sendo assim falso.
+
+```bash
+be-mean-pokemons> var query = {name: "Pikachu"}
+be-mean-pokemons> var fields = {name: 1, description: 1}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico"
+}
+Fetched 1 record(s) in 1ms
+```
+
+Mas acabou que veio o *_id*, mas como pode remover isso?
+
+```bash
+be-mean-pokemons> var query = {name: "Pikachu"}
+be-mean-pokemons> var fields = {_id: 0, name: 1, description: 1}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "name": "Pikachu",
+  "description": "Rato eletrico"
+}
+Fetched 1 record(s) in 1ms
+```
+
+No MongoDB você tem os operadores aritméticos, para enriquecer sua pesquisa. Abaixo vamos ver alguns deles:
+
+ - < é *$lt* (less than): Define se determinado valor é menor que *x*;
+ - <= é *$lte* (less than or equal): Define se determinado valor é menor ou igual a *x*;
+ - > é *$gt* (greater than): Define se determinado valor é maior que *x*;
+ - >= é *$gte* (greater than or equal): Define se determinado valor é maior ou igual a *x*.
+
+Exemplos:
+
+```bash
+be-mean-pokemons> var query = {height: {$lt: 20}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico",
+  "type": "eletric",
+  "attack": 55,
+  "height": 0.4
+}
+Fetched 1 record(s) in 0ms
+```
+
+```bash
+be-mean-pokemons> var query = {height: {$lte: 10}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico",
+  "type": "eletric",
+  "attack": 55,
+  "height": 0.4
+}
+{
+  "_id": ObjectId("564629c1b62557f6ed6281cb"),
+  "name": "Wigglytuff",
+  "description": "Pokemon cantora",
+  "attack": 70,
+  "defense": 45,
+  "height": 10
+}
+Fetched 1 record(s) in 0ms
+```
+
+```bash
+be-mean-pokemons> var query = {height: {$gt: 10}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("564629f4b62557f6ed6281cc"),
+  "name": "Ekans",
+  "description": "Cobrinha pokemon",
+  "attack": 60,
+  "defense": 44,
+  "height": 69
+}
+Fetched 1 record(s) in 0ms
+```
+
+```bash
+be-mean-pokemons> var query = {height: {$gte: 10}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("564629c1b62557f6ed6281cb"),
+  "name": "Wigglytuff",
+  "description": "Pokemon cantora",
+  "attack": 70,
+  "defense": 45,
+  "height": 10
+}
+{
+  "_id": ObjectId("564629f4b62557f6ed6281cc"),
+  "name": "Ekans",
+  "description": "Cobrinha pokemon",
+  "attack": 60,
+  "defense": 44,
+  "height": 69
+}
+Fetched 1 record(s) in 0ms
+```
+
+Temos também os operadores lógicos que são *$or*, *$nor* e *$and*. Segue os exemplos:
+
+ - Usando o operador *$or*:
+
+```bash
+be-mean-pokemons> var query = {$or: [{name: "Pikachu"}, {height: 10}]}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico",
+  "type": "eletric",
+  "attack": 55,
+  "height": 0.4
+}
+{
+  "_id": ObjectId("564629c1b62557f6ed6281cb"),
+  "name": "Wigglytuff",
+  "description": "Pokemon cantora",
+  "attack": 70,
+  "defense": 45,
+  "height": 10
+}
+Fetched 2 record(s) in 1ms
+```
+
+Lembrando que o *$or* precisa receber um array de no mínimo, duas premissas.
+
+ - Usando o operador *$nor*:
+
+```bash
+be-mean-pomekons> var query = {$nor: [{name: "Pikachu"}, {height: 10}]}
+be-mean-pomekons> db.pokemons.find(query)
+{
+  "_id": ObjectId("564629f4b62557f6ed6281cc"),
+  "name": "Ekans",
+  "description": "Cobrinha pokemon",
+  "attack": 60,
+  "defense": 44,
+  "height": 69
+}
+Fetched 1 record(s) in 1ms
+```
+
+ - Usando o operador *$and*:
+
+```bash
+be-mean-pokemons> var query = {$and: [{name: "Pikachu"}, {height: {$lt: 10}}]}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico",
+  "type": "eletric",
+  "attack": 55,
+  "height": 0.4
+}
+Fetched 1 record(s) in 0ms
+```
+
+Lembrando que com o *$and*, ele irá retornar algo, se **todas suas premissas estiverem verdadeiras**.
+
+E terminando, vamos aos operadores existenciais, com o operador *$exists*. Ele verifica se determinado campo existe:
+
+```
+be-mean-pokemons> db.pokemons.find({name: {$exists: true}})
+{
+  "_id": ObjectId("5643a6a374c9f8d5e993a639"),
+  "name": "Pikachu",
+  "description": "Rato eletrico",
+  "type": "eletric",
+  "attack": 55,
+  "height": 0.4
+}
+{
+  "_id": ObjectId("564629c1b62557f6ed6281cb"),
+  "name": "Wigglytuff",
+  "description": "Pokemon cantora",
+  "attack": 70,
+  "defense": 45,
+  "height": 10
+}
+{
+  "_id": ObjectId("564629f4b62557f6ed6281cc"),
+  "name": "Ekans",
+  "description": "Cobrinha pokemon",
+  "attack": 60,
+  "defense": 44,
+  "height": 69
+}
+Fetched 3 record(s) in 1ms
+```
+
+Caso não existir:
+
+```bash
+be-mean-pokemons> db.pokemons.find({other: {$exists: true}})
+Fetched 0 record(s) in 0ms
+```
+
+#### Links
+
+ - [Video da Aula](https://www.youtube.com/watch?v=cIHjA1hyPPY)
+ - [Exercicio da Aula](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge839fbc67_123_183)
+ - [Exercicio Resolvido](https://github.com/Webschool-io/be-mean-instagram/blob/master/apostila/classes/mongodb/exercises/class-03-resolved-gilsondev-gilsonfilho.md)
