@@ -31,8 +31,6 @@ Finalizando a aula foram apresentados os comandos export & import do mongoDB e u
 Slides:
  - [Aula 02](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge7fc94614_395_0)
 
-O que foi falado na aula?
-
 Iniciamos, com a instrução de envio dos exercícios para o repositório do `Webshool-io/be-mean-instagram`, por meio do Pull Request. Foi explicado o uso do comando `use <database_name>` que acessa o banco escolhido. Dessa forma fica assim:
 
  ```bash
@@ -469,3 +467,262 @@ Fetched 0 record(s) in 0ms
  - [Video da Aula](https://www.youtube.com/watch?v=cIHjA1hyPPY)
  - [Exercicio da Aula](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge839fbc67_123_183)
  - [Exercicio Resolvido](https://github.com/Webschool-io/be-mean-instagram/blob/master/apostila/classes/mongodb/exercises/class-03-resolved-gilsondev-gilsonfilho.md)
+
+
+### Aula 04 (Parte 01)
+
+Slides:
+ - [Aula 04 (Parte 01)](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.ge839fbc67_123_188)
+
+O que foi falado na aula?
+
+Começamos a estudar a diferença entre o `update()` e o `save()metr)`, no ato de atualizar algum documento. E quais são as diferenças?
+
+ - No `save` você precisa buscar o documento antes de modificar;
+ - No `update` não precisa, mas para realmente atualizar o documento, precisa passar pelo menos o seu `ObjectID`.
+
+O `update` recebe três parametros: **query**, **modification**, **options**. Vamos ver cada um deles.
+
+ - **query**: É onde você vai definir a sua query, para fazer sua busca;
+ - **modification**: Define os campos a serem modificados;
+ - **options**: 
+
+Ele vai ser da seguinte forma:
+```bash
+db.colecao.update(query, mod, options);
+```
+
+Agora vamos criar um novo pokemon, para depois atualizar:
+
+```bash
+be-mean-pokemons> var pokemon = {name: "Poketest", attack: 40, defense: 20, height: 4, description: "Pokemon Teste"}
+
+be-mean-pokemons> db.pokemons.save(pokemon)
+
+Inserted 1 record(s) in 30ms
+WriteResult({
+  "nInserted": 1
+})
+```
+
+Criamos o documento. Então, vamos buscar ele, para pegarmos o `ObjectID` para assim, mostrarmos a atualização:
+
+```bash
+be-mean-pokemons> var query = {name: /poketest/i}
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "name": "Poketest",
+  "attack": 40,
+  "defense": 20,
+  "height": 4,
+  "description": "Pokemon Teste"
+}
+Fetched 1 record(s) in 1ms
+```
+
+Agora vamos mudar a descrição:
+
+```bash
+be-mean-pokemons> var id = {"_id": ObjectId("56489706ak219as219asasl129")}
+be-mean-pokemons> var modification = {description: "Alterado"}
+be-mean-pokemons> db.pokemons.update(query, mod)
+Updated 1 existing record(s) in 3ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+Quando for buscar novamente retorna isso:
+
+```bash
+be-mean-pokemons> db.pokemons.find(query)
+
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "description": "Alterado"
+}
+
+Fetched 1 record(s) in 1ms
+```
+
+Mas aonde está os outros campos que inserimos? O MongoDB removeu, porque as modificações que armazenamos na variável `modifications` definiu somente a descrição. Para evitar esse tipo de situação, temos que usar o operador [$set](https://docs.mongodb.org/manual/reference/operator/update/set/). Ele auxilia na definição dos campos que desejamos alterar, sem afetar nas que não inserimos no parametro de modificação. Exemplo:
+
+```bash
+{$set: {campo: valor}}
+```
+
+Assim podemos definir quais campos o mongo deve atualizar. No nosso caso vai ser:
+
+```bash
+be-mean-pokemons> var query = {"_id": ObjectId("56489706ak219as219asasl129")}
+be-mean-pokemons> var modification = {$set: {description: "Alterado"}}
+be-mean-pokemons> db.pokemons.update(query, modification)
+Updated 1 existing record(s) in 2ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+```bash
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "description": "Alterado",
+  "name": "Poketest",
+  "attack": 40,
+  "defense": 20,
+  "height": 4
+}
+Fetched 1 record(s) in 1ms
+```
+
+Dessa forma, deixamos claro para o mongo, o que deve modificar.
+
+Um outro operador que faz o contrário acima, é o [$unset](https://docs.mongodb.org/manual/reference/operator/update/unset/), que ele remove um campo em particular.
+
+```bash
+{$unset: {campo: valor}}
+```
+
+Se quiséssemos remover o campo de peso, é só fazer da seguinte forma:
+
+```bash
+
+be-mean-pokemons> var query = {"_id": ObjectId("56489706ak219as219asasl129")}
+be-mean-pokemons> var modification = {$unset: {height: 1}}
+be-mean-pokemons> db.pokemons.update(query, modification)
+Updated 1 existing record(s) in 2ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+```bash
+be-mean-pokemons> var query = {"_id": ObjectId("56489706ak219as219asasl129")}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "description": "Alterado",
+  "name": "Poketest",
+  "attack": 40,
+  "defense": 20
+}
+Fetched 1 record(s) in 1ms
+```
+
+Temos também o operador [$inc](https://docs.mongodb.org/manual/reference/operator/update/inc/) que serve para incrementar um campo que tenha um valor do tipo numérico. Se esse campo não existe, então seta o valor passado e o salva no documento. Para incrementar, coloca um **valor positivo**, caso contrário um **valor negativo**.
+
+```bash
+{$inc: {field: value}}
+```
+
+Segue um exemplo:
+
+```bash
+be-mean-pokemon> var mod = {$inc: { attack: 1 }}
+be-mean-pokemon> db.pokemons.update(query, mod)
+
+Updated 1 existing record(s) in 1ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+O comando [$push](https://docs.mongodb.org/manual/reference/operator/update/push/) adiciona um valor dentro de um array. Caso esse campo não exista, ele cria o mesmo com o tipo array, e mesmo assim o campo não for um array, retorna um erro.
+
+```bash
+{$push: {campo: valor}}
+```
+
+Vamos adicionar um campo:
+```bash
+be-mean-pokemons> var modification = {$push: {moves: 'Poder de testar as coisas'}}
+be-mean-pokemons> db.pokemons.update(query, modification)
+
+Updated 1 existing record(s) in 0ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+Quando vermos o nosso documento:
+
+```bash
+be-mean-pokemons> var query = {"_id": ObjectId("56489706ak219as219asasl129")}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "description": "Alterado",
+  "name": "Poketest",
+  "attack": 40,
+  "defense": 20,
+  "moves": ["Poder de testar as coisas"]
+}
+Fetched 1 record(s) in 1ms
+```
+
+Com o comando [$pushAll](https://docs.mongodb.org/manual/reference/operator/update/pushAll/) não seria diferente, a não ser que ele recebe um array inteiro.
+
+```bash
+{$pushAll: {campo: ["itemN"]}}
+```
+
+```bash
+be-mean-pokemons> var moves = ["Testando 1", "Testando 2"]
+be-mean-pokemons> var modification = {$pushAll: {moves: moves}}
+be-mean-pokemons> db.pokemons.update(query, modification)
+
+Updated 1 existing record(s) in 0ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+Temos o comando [$pull](https://docs.mongodb.org/manual/reference/operator/update/pull/) que remove o valor do campo definido, caso ele seja um array existente. Se não existir, faz nada, e se o campo não for um array, retorna um erro.
+
+```bash
+{$pull: {campo: valor}}
+```
+
+```bash
+be-mean-pokemons> var modification = {$pull: {moves: 'Testando 1'}}
+be-mean-pokemons> db.pokemons.update(query, modification)
+
+Updated 1 existing record(s) in 5ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
+
+Com o [$pullAll](https://docs.mongodb.org/manual/reference/operator/update/pushAll/) você passa um array de valores que deseja ser removido.
+
+```bash
+{$pushAll: {campo: ["itemN"]}}
+```
+
+```bash
+be-mean-pokemons> var moves = ["Testando 1", "Testando 2"]
+be-mean-pokemons> var modification = {$pullAll: {moves: moves}}
+be-mean-pokemons> db.pokemons.update(query, modification)
+
+Updated 1 existing record(s) in 0ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 1
+})
+```
