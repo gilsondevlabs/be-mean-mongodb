@@ -726,3 +726,270 @@ WriteResult({
   "nModified": 1
 })
 ```
+
+
+### Aula 04 (Parte 02)
+
+Slides:
+ - [Aula 04 (Parte 02)](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.gd8825a620_121_0)
+
+Nessa aula é a continuação dos operadores usados no parametro de *options* da função `update()`.
+
+Vamos começar com o operador `upsert`, `multi` e `writeConcern`.
+
+#### upsert
+
+Com o upsert, que por padrão é false, se definido como verdadeiro, ele insere os dados a ser modificados, caso não retornar nenhum documento usando com critério a query. Segue um exemplo, em que vamos atualizar um documento em que o mongo vai encontrar, e atualizar um valor usando o operador `$set`.
+
+```bash
+be-mean-pokemons> var query = {name: /ekans/i}
+be-mean-pokemons> var mod = {$set: {active: true}}
+be-mean-pokemons> var options = {upsert: true}
+be-mean-pokemons> db.pokemons.update(query, mod, options)
+Updated 1 existing record(s) in 1ms
+WriteResult({
+  "nMatched": 1,
+  "nUpserted": 0,
+  "nModified": 0
+})
+```
+
+Como buscarmos novamente, vamos ver que ele foi atualizado:
+
+```bash
+be-mean-pokemons> var query = {name: /ekans/i}
+be-mean-pokemons> db.pokemons.update(query)
+{
+  "_id": ObjectId("564629f4b62557f6ed6281cc"),
+  "name": "Ekans",
+  "description": "Cobrinha pokemon",
+  "attack": 60,
+  "defense": 44,
+  "height": 69,
+  "active": true
+}
+Fetched 1 record(s) in 0ms
+```
+
+Agora o que acontece se o registro que for buscar não existe?
+
+```bash
+be-mean-pokemons> var query = {name: /notexists/i}
+be-mean-pokemons> var mod = {$set: {active: true}}
+be-mean-pokemons> var options = {upsert: true}
+be-mean-pokemons> db.pokemons.update(query, mod, options)
+Updated 1 new record(s) in 1ms
+WriteResult({
+  "nMatched": 0,
+  "nUpserted": 1,
+  "nModified": 0,
+  "_id": ObjectId("aslk1290aslk2190aslk2190")
+})
+```
+
+```bash
+be-mean-pokemons> var query = {"_id": ObjectId("aslk1290aslk2190aslk2190")}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("aslk1290aslk2190aslk2190"),
+  "active": true
+}
+```
+
+Assim, quando não encontra o registro, ele cria um novo documento com os valores passados pelo operador `$set`. Mas temos um operador que pode ser usado no caso do `upsert` em que ele envia os valores a serem inseridos, caso o upsert for invocado, que é o [$setOnInsert]().
+
+```bash
+be-mean-pokemons> var query = {/notexists/i}
+be-mean-pokemons> var mod = {
+  $set: {active: true},
+  $setOnInsert: {
+    name: "Not Exist Pokemon",
+    attack: null,
+    defense: null,
+	height: null,
+	description: "Not exists"
+  }
+}
+be-mean-pokemons> var options = {upsert: true}
+be-mean-pokemons> db.pokemons.update(query, mod, options)
+Updated 1 new record(s) in 1ms
+WriteResult({
+  "nMatched": 0,
+  "nUpserted": 1,
+  "nModified": 0,
+  "_id": ObjectId("cjals19aslk1291298asjlk12jkas8912")
+})
+```
+
+```bash
+be-mean-pokemons> var query = {"_id": ObjectId("cjals19aslk1291298asjlk12jkas8912")}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("cjals19aslk1291298asjlk12jkas8912"),
+  "active": true,
+  "name": "Not Exist Pokemon",
+  "attack": null,
+  "defense": null,
+  "height": null,
+  "description": "Not exists"
+}
+```
+
+#### multi
+
+Esse operador é onde definimos se queremos fazer uma atualização em massa ou não, seguindo o que foi definido na query. Segue um exemplo:
+
+```bash
+be-mean-pokemons> var query = {}
+be-mean-pokemons> var mod = {$set: {active: true}}
+be-mean-pokemons> var options = {multi: true}
+be-mean-pokemons> db.pokemons.update(query, mod, options)
+
+Updated 5 existing record(s) in 2ms
+WriteResult({
+	"nMatched": 5,
+	"nUpserted": 0,
+	"nModified": 5
+})
+```
+
+Desse modo, como não especificamos nada na query, ele vai efetuar a atualização para todos os documentos da coleção. Como vemos ele fez a atualização de todos os cinco documentos armazenados.
+
+
+#### writeConcern
+
+ Foi citado do operador [writeConcern](https://docs.mongodb.org/manual/reference/write-concern/) que define um nivel de comprometimento com a escrita, sendo forte para não se preocupar com tempo de resposta menor, mas tendo mais segurança na persistência, ou mais fraca que define o contrário disso. Fica para um estudo mais aprofundado desse e de outros operadores.
+
+### Operadores no find
+
+Agora que abordamos boa parte dos operadores a serem usados no `update()`, vamos falar de alguns para o `find()` nessa aula.
+
+#### Operador $in
+
+Com o operador [$in](https://docs.mongodb.org/manual/reference/operator/query/in/), verificamos se determinado(s) valor(es) passados na query estão em um campo do tipo array. Dessa forma, ele vai trazer no resultado, documentos que batem com a consulta. O formato do operador é:
+
+```bash
+{field: {$in: [<value1>, <valueN>]}}
+```
+
+Seu comportamento é parecido com o operador `$or`. Por exemplo, vamos procurar alguns dos ataques nos pokemons armazenados:
+
+```bash
+be-mean-pokemons> var query = {moves: {$in: [/choque do trovão/i]}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "name": "Pikachu",
+  "description": "Eletrico",
+  "attack": 40,
+  "defense": 20,
+  "moves": ["Choque do Trovão"]
+}
+Fetched 1 record(s) in 0ms
+```
+
+#### Operador $nin
+
+O operador [$nin](https://docs.mongodb.org/manual/reference/operator/query/nin/) faz o contrário que o `$in`, porque ele vai trazer documentos que não tenham os valores passados na query. Exemplo:
+
+
+```bash
+be-mean-pokemons> var query = {moves: {$nin: [/choque do trovão/i]}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "name": "Squirtle",
+  "description": "Pokemon aquatico",
+  "attack": 35,
+  "defense": 15,
+  "moves": ["Hidrobomba", "Investida"]
+}
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "name": "Pokeaqua",
+  "description": "Pokemon aquatico",
+  "attack": 15,
+  "defense": 10,
+  "moves": ["Hidrobomba", "Jato de Agua"]
+}
+Fetched 2 record(s) in 0ms
+```
+
+#### Operador $all
+
+O operador [$all](https://docs.mongodb.org/manual/reference/operator/query/all/) vai trazer os documentos que tiverem **todos** os itens em um campo do tipo array, conforme definido na query. Seu comportamento é parecido com o operador `$and`. Exemplo:
+
+```bash
+be-mean-pokemons> var query = {moves: {$all: [/choque do trovão/i, /investida/i]}}
+be-mean-pokemons> db.pokemons.find(query)
+{
+  "_id": ObjectId("56489706ak219as219asasl129"),
+  "name": "Squirtle",
+  "description": "Pokemon aquatico",
+  "attack": 35,
+  "defense": 15,
+  "moves": ["Hidrobomba", "Investida"]
+}
+Fetched 1 record(s) in 0ms
+```
+
+### Operadores de negação
+
+Vamos explicar os operadores de negação usados nas pesquisas.
+
+#### $ne - Not Equal
+
+Esse operador [$ne](https://docs.mongodb.org/manual/reference/operator/query/ne/) vai trazer documentos em que determinado campo tenha um valor diferente do que foi passado na query. Segue o formato do operador:
+
+```bash
+{campo: {$ne: valor}}
+```
+
+Segue um exemplo:
+
+```bash
+be-mean-pokemons> var query = {speed: {$ne: 80}}
+{
+  "_id": ObjectId("564b1daf25337263280d048d"),
+  "attack": 50,
+  "created": "2013-11-03T15:05:41.388462",
+  "defense": 40,
+  "height": "6",
+  "hp": 40,
+  "name": "Poliwag",
+  "speed": 90,
+  "types": [
+    "water"
+  ]
+}
+Fetched 1 record(s) in 0ms
+```
+
+**Observação**: Esse operador não aceita regex. Ele mostra o seguinte erro:
+
+```bash
+Error: error: {
+  "$err": "Can't canonicalize query: BadValue Can't have regex as arg to $ne.",
+  "code": 17287
+}
+```
+
+#### Operador $not
+
+Como o próprio operador mostra, o [$not](https://docs.mongodb.org/manual/reference/operator/query/not/) vai trazer documentos em que determinado valor de um campo seja diferente do que foi passado na query.
+
+### Usando o remove
+
+A função `remove` serve para remover um documento de uma coleção. Para isso é só definir uma query, para que ele encontre os documentos que encaixe na busca, e depois as remove.
+
+Exemplo:
+
+```bash
+be-mean-pokemons> var query = {name: /squirtle/i}
+be-mean-pokemons> db.pokemons.remove(query)
+WriteResult({
+	"nRemoved": 1
+})
+```
+
+**Cuidado**: A função remove vem com o operador `multi` como *true*, ao contrário do `update`.
