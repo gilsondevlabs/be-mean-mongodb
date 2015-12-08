@@ -733,9 +733,7 @@ WriteResult({
 Slides:
  - [Aula 04 (Parte 02)](https://docs.google.com/presentation/d/1KXxmcwd47x4v2SymyiBPK7ucn80PruSvcw4mZ5S3nWc/edit#slide=id.gd8825a620_121_0)
 
-Nessa aula é a continuação dos operadores usados no parametro de *options* da função `update()`.
-
-Vamos começar com o operador `upsert`, `multi` e `writeConcern`.
+Nessa aula é a continuação dos operadores usados no parametro de *options* da função `update()`. Falamos do operador `upsert`, `multi` e `writeConcern`, dos operadores usados no find como `$in`, `$nin`e `$all`, além dos operadores de negação `$ne` e `$not`. No final, foi abordado o uso da função `remove()`.
 
 #### upsert
 
@@ -993,3 +991,412 @@ WriteResult({
 ```
 
 **Cuidado**: A função remove vem com o operador `multi` como *true*, ao contrário do `update`.
+
+## Aula 05
+
+Nessa aula foi focado a ensinar as funções de consulta: `count()`, `distinct()`, `group()`, `limit()` e o `.skip()` juntos, como o `aggregate()`.
+
+### length e o count
+
+Vamos usar a nossa base de restaurantes, conforme está no repositório do be-mean. Levando em consideração que você já importou os dados, vamos saber a quantidade de documentos na nossa coleção.
+
+```bash
+be-mean> db.restaurantes.find().length
+function (){
+    return this.toArray().length;
+}
+be-mean> db.restaurantes.find().length()
+25359
+```
+
+Como vemos, o `length()` é uma função que é invocado no objeto de resultado da consulta. Mas ele não é performático, porque ele precisa carregar **todos os registros**, iterar sobre eles e assim retornar o resultado. Uma função melhor para isso, é o `count()`.
+
+```bash
+be-mean> db.restaurantes.count()
+25359
+```
+
+Da mesma forma que passamos uma query no `find()`, podemos fazer isso com o `count()` também:
+
+```Bash
+be-mean> var query = {"borough": "Bronx"}
+be-mean> db.restaurantes.find(query)
+...
+be-mean> db.restaurantes.find(query).length()
+2338
+be-mean> db.restaurantes.count(query)
+2338
+```
+
+### distinct
+
+Da mesma forma que temos no SQL, o `distinct()` vai trazer resultados distintos de um determinado campo. Ele vai trazer um array de valores diferentes. Exemplo:
+
+```bash
+be-mean> db.restaurantes.distinct('borough')
+[
+  "Bronx",
+  "Brooklyn",
+  "Manhattan",
+  "Queens",
+  "Staten Island",
+  "Missing"
+]
+```
+
+Se tentarmos usar o `count()` no resultado acima, vai gerar um erro.
+
+```bash
+2015-12-02T20:02:51.409-0200 E QUERY    TypeError: Object Bronx,Brooklyn,Manhattan,Queens,Staten Island,Missing has no method 'count'
+    at (shell):1:37
+```
+
+Porque isso? Acontece que o nosso resultado é um array, e ele já possui a propriedade `length`, que é diferente do nosso array de documentos em uma pesquisa convencional. Para ver que o que estamos recebendo aqui é um array javascript, podemos order os resultados:
+
+```bash
+db.restaurantes.distinct('borough').sort()
+[
+  "Bronx",
+  "Brooklyn",
+  "Manhattan",
+  "Missing",
+  "Queens",
+  "Staten Island"
+]
+```
+
+### limit e o skip
+
+No MongoDB, a paginação de dados é muito simples de fazer. Para isso, vamos usar novamente a nossa coleção de pokemons. Vamos pesquisar somente os seus nome primeiramente:
+
+```bash
+be-mean-pokemons> db.pokemons.find({}, {name: 1, _id: 0})
+{
+  "name": "Kakuna"
+}
+{
+  "name": "Farfetchd"
+}
+{
+  "name": "Magnemite"
+}
+{
+  "name": "Magneton"
+}
+{
+  "name": "Wartortle"
+}
+{
+  "name": "Doduo"
+}
+{
+  "name": "Dodrio"
+}
+{
+  "name": "Seel"
+}
+{
+  "name": "Dewgong"
+}
+{
+  "name": "Gastly"
+}
+{
+  "name": "Cloyster"
+}
+{
+  "name": "Poliwag"
+}
+Fetched 20 record(s) in 0ms -- More[true]
+```
+
+O seu resultado foi mais de 20 registros, e é tanta informação que não cabe na tela, tanto que precisamos digitar `it` para acessar os outros nomes. Então, o que acha limitarmos a quantidade de nomes?
+
+```bash
+be-mean-pokemons> db.pokemons.find({}, {_id: 0, name: 1}).limit(2)
+{
+  "name": "Charmeleon"
+}
+{
+  "name": "Rattata"
+}
+Fetched 2 record(s) in 0ms
+```
+
+Com a função `limit()` definimos o limite de itens a serem retornados na consulta, que no caso acima foi de dois registros. Agora para termos uma paginação de verdade, vamos usar junto o `skip()`, que ele recebe quantos registros ele vai pular, assim delimitando o inicio e final, parecido com o `LIMIT` do SQL.
+
+```bash
+be-mean-pokemons> db.pokemons.find({}, {_id: 0, name: 1}).limit(2).skip(2 * 0)
+{
+  "name": "Charmeleon"
+}
+{
+  "name": "Rattata"
+}
+Fetched 2 record(s) in 0ms
+
+be-mean-pokemons> db.pokemons.find({}, {_id: 0, name: 1}).limit(2).skip(2 * 1)
+{
+  "name": "Charmander"
+}
+{
+  "name": "Blastoise"
+}
+Fetched 2 record(s) in 0ms
+```
+
+O que fizemos acima é só multiplicar a quantidade de registros, com o número de páginas por exemplo. Assim, traz novos resultados.o
+
+### group
+
+Vamos considerar que queremos saber a quantidade total de pokemons, a partir do seus tipos. Se tentarmos usar o `count()`, teremos que usar varias vezes, para cada tipo.
+
+```bash
+be-mean-pokemons> db.pokemons.distinct('types').length
+18
+```
+
+Fazer a contagem 18 vezes vai onerar o banco. É ai que o `group()` entra. Vamos pedir para ele fazer essa consulta, agrupando os pokemons pelo seus tipo, e assim ele vai trazer o resultado que queremos, mas de uma vez só.
+
+```bash
+be-mean-pokemons> db.pokemons.group({
+	initial: { total: 0 },
+	reduce: function(curr, result) {
+		curr.types.forEach(function(type) {
+			if (result[type]) {
+				result[type]++;
+			} else {
+				result[type] = 1;
+			}
+			result.total++;
+		});
+	}
+});
+[
+  {
+    "total": 915,
+    "fire": 47,
+    "normal": 78,
+    "water": 105,
+    "bug": 61,
+    "flying": 77,
+    "poison": 54,
+    "steel": 37,
+    "electric": 40,
+    "ice": 24,
+    "ghost": 34,
+    "psychic": 62,
+    "fighting": 38,
+    "grass": 75,
+    "ground": 51,
+    "fairy": 28,
+    "rock": 46,
+    "dark": 38,
+    "dragon": 20
+  }
+]
+```
+
+Vamos por partes. Nós estamos solicitando para o group, trazer o total de pokemons por cada tipo existente. Vamos explicar cara informação passada:
+
+ - **initial**: Iniciamos o documento que vai receber o resultado desse agrupamento. No nosso caso iniciamos com o total tendo o valor zero.
+ - **reduce**: Ele precisa receber uma função que vai fazer o processo de reduce, em cada documento a ser percorrido. Aqui criamos uma função que recebe dois parametros: `curr` que é o documento em questão durante a busca, e o `result` que representa o nosso documento para o agrupamento. Ele verifica se existe o tipo percorrido no nosso array `types`. Se sim, somente incrementa por um, caso contrário, insere no result e inicializa para ser incremento nas próximas iterações. Além disso vamos incrementando por 1 o nosso total.
+
+Dessa forma ele traz o resultado acima, O `total` que vai trazer a quantidade total de pokemons e a quantidade de cada tipo.
+
+
+Um outro parametro que podemos passar para o `group` é o `cond`, que passamos as condições para que o agrupamento seja feito. Por exemplo, eu quero saber o total de pokemons agrupados pelo tipo, mas que a defesa seja maior que 40.
+
+```bash
+be-mean-pokemons> db.pokemons.group({
+	initial: { total: 0 },
+	cond: {defense: {$gt: 40}},
+	reduce: function(curr, result) {
+		curr.types.forEach(function(type) {
+			if (result[type]) {
+				result[type]++;
+			} else {
+				result[type] = 1;
+			}
+			result.total++;
+		});
+	}
+});
+
+[
+  {
+    "total": 796,
+    "fire": 41,
+    "water": 92,
+    "bug": 54,
+    "flying": 67,
+    "poison": 45,
+    "normal": 59,
+    "steel": 37,
+    "electric": 31,
+    "ice": 21,
+    "fighting": 33,
+    "grass": 67,
+    "ground": 47,
+    "fairy": 21,
+    "psychic": 55,
+    "rock": 45,
+    "dark": 30,
+    "dragon": 20,
+    "ghost": 31
+  }
+]
+```
+Viu que veio com menos pokemons? É porque ele agrupou a partir da condição que passamos.
+
+### usando finalize no group
+
+Outro parametro interessante é o `finalize`, que diferente do `reduce`, ele vai rodar no final do agrupamento. Um exemplo interessante, é fazer o agrupamento, totalizando os ataque e defesas de todos os pokemons inicialmente:
+
+```bash
+be-mean-pokemons> db.pokemons.group({
+	initial: {total: 0, attack: 0, defense: 0},
+	reduce: function(current, result) {
+		result.total++;
+		result.attack += current.attack;
+		result.defense += current.defense;
+	}
+});
+
+[
+  {
+    "total": 610,
+    "attack": 45445,
+    "defense": 43623
+  }
+]
+```
+
+Com os 610 pokemons, nós somamos todos os ataque e defesas, e retornamos os valores solicitados. Agora vamos calcular a média do ataque e defesa, mas usando o `finalize`:
+
+```bash
+be-mean-pokemons> db.pokemons.group({
+	initial: {total: 0, attack: 0, defense: 0},
+	reduce: function(current, result) {
+		result.total++;
+		result.attack += current.attack;
+		result.defense += current.defense;
+	},
+	finalize: function(result) {
+		result.attack_avg = result.attack / result.total;
+		result.defense_avg = result.defense / result.total;
+	}
+});
+
+[
+  {
+    "total": 610,
+    "attack": 45445,
+    "defense": 43623,
+    "attack_avg": 74.5,
+    "defense_avg": 71.51311475409837
+  }
+]
+```
+
+Assim, depois de fazer todo o reduce em todos os documentos, ele executa a função do finalize e calcula as médias que precisamos.
+
+### aggregate
+
+A função `aggregate` não é muito diferente de `group`, mas com ele você pode definir um array de pipeline, definindo uma sequência de estágios na pesquisa. Segue um exemplo:
+
+```bash
+be-mean-pokemons> db.pokemons.aggregate({
+	$group: {
+		_id: {},
+		defense_avg: {$avg: '$defense'},
+		attack_avg: {$avg: '$attack'}
+	}
+})
+```
+
+Aqui estamos usando o pipeline `$group`, que ele está agrupando o ataque e defense, para assim trazer uma média geral deles. Viram que não é muito diferente do que fizemos no `group`, mas aqui usamos os recursos disponíveis do mongo. Rodando a função acima, ele vai retornar isso:
+
+```bash
+{
+  "result": [
+    {
+      "_id": {},
+      "defense_avg": 71.51311475409837,
+      "attack_avg": 74.5
+    }
+  ],
+  "ok": 1
+}
+```
+
+Assim, calculamos a média do ataque e defesa, usando o operador [$avg](https://docs.mongodb.org/manual/reference/operator/aggregation/avg/), dentro da pipeline `$group`. Vamos colocar o total de ataque, defesa e o total de documentos a serem percorridos, nesse caso os nossos pokemons:
+
+```bash
+be-mean-pokemons> db.pokemons.aggregate({
+	$group: {
+		_id: {},
+		defense_avg: {$avg: '$defense'},
+		attack_avg: {$avg: '$attack'},
+		defense: {$sum: '$defense'},
+		attack: {$sum: '$attack'},
+		total: {$sum: 1}
+	}
+})
+```
+
+Nesses ultimos valores, nós estamos somando a defesa e o ataque usando o operador [$sum](https://docs.mongodb.org/manual/reference/operator/aggregation/sum/), que vai somando o valor da coluna de cada documento percorrido. E no total, estamos somando por mais um, para assim termos o total de documentos que passamos na coleção. E o resultado fica assim:
+
+```bash
+{
+  "result": [
+    {
+      "_id": {},
+      "defense_avg": 71.51311475409837,
+      "attack_avg": 74.5,
+      "defense": 43623,
+      "attack": 45445,
+      "total": 610
+    }
+  ],
+  "ok": 1
+}
+```
+
+E como vou fazer isso em cima de alguma condição? Como o aggregate recebe uma lista de pipelines, que são uma sequência de estágios a serem rodados a cada documento, podemos definir uma pipeline, para **filtrar** de acordo com o condição desejada. Vamos filtrar, por exemplo, para somente os pokemons do tipo fogo:
+
+```bash
+be-mean-pokemons> db.pokemons.aggregate([
+	{
+		$match: {types: 'fire'}
+	},
+	{
+		$group: {
+			_id: {},
+			defense_avg: {$avg: '$defense'},
+			attack_avg: {$avg: '$attack'},
+			defense: {$sum: '$defense'},
+			attack: {$sum: '$attack'},
+			total: {$sum: 1}
+		}
+	}
+])
+```
+
+```bash
+{
+  "result": [
+    {
+      "_id": {},
+      "defense_avg": 65.70212765957447,
+      "attack_avg": 79.74468085106383,
+      "defense": 3088,
+      "attack": 3748,
+      "total": 47
+    }
+  ],
+  "ok": 1
+}
+```
+
+Vemos que o resultado é diferente, porque ele rodou a pipeline de agrupamento, somente para os pokemons de fogo.
